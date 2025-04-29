@@ -1,64 +1,77 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
-import { useAuth } from '../context/AuthContext';
-import { theme } from '../constants/theme';
+import React, { useState, useContext } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  ActivityIndicator,
+  Image 
+} from 'react-native';
+import { AuthContext } from '../../App';
+import { login } from '../services/authService';
 
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+const LoginScreen = () => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { signIn, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useContext(AuthContext);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Por favor, preencha todos os campos');
+    if (!username || !password) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
 
-    const success = await signIn(email, password);
-    if (!success) {
-      setError('Email ou senha inválidos');
+    setLoading(true);
+    try {
+      const response = await login(username, password);
+      signIn(response);
+    } catch (error) {
+      Alert.alert('Erro de autenticação', error.message || 'Falha ao fazer login');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Text style={styles.title}>LogiTrack</Text>
-        <Text style={styles.subtitle}>Gerenciamento de Robôs Logísticos</Text>
-      </View>
-
       <View style={styles.formContainer}>
+        <Text style={styles.title}>LogiTrack</Text>
+        <Text style={styles.subtitle}>Sistema de Gerenciamento de Robôs Logísticos</Text>
+        
         <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
           style={styles.input}
-          keyboardType="email-address"
+          placeholder="Nome de usuário"
+          value={username}
+          onChangeText={setUsername}
           autoCapitalize="none"
         />
-
+        
         <TextInput
-          label="Senha"
+          style={styles.input}
+          placeholder="Senha"
           value={password}
           onChangeText={setPassword}
-          mode="outlined"
-          style={styles.input}
           secureTextEntry
         />
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Button
-          mode="contained"
+        
+        <TouchableOpacity 
+          style={styles.loginButton}
           onPress={handleLogin}
-          loading={loading}
-          style={styles.button}
+          disabled={loading}
         >
-          Entrar
-        </Button>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Entrar</Text>
+          )}
+        </TouchableOpacity>
+        
+        <Text style={styles.helpText}>
+          Use: admin / admin123 ou user / user123
+        </Text>
       </View>
     </View>
   );
@@ -67,40 +80,62 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: theme.colors.background,
-  },
-  logoContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: '#2c3e50',
+    textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: theme.colors.text,
+    color: '#7f8c8d',
     textAlign: 'center',
-  },
-  formContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    marginBottom: 30,
   },
   input: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 5,
+    padding: 15,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  button: {
+  loginButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 5,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  loginButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  helpText: {
     marginTop: 20,
-  },
-  error: {
-    color: theme.colors.error,
     textAlign: 'center',
-    marginBottom: 10,
+    color: '#95a5a6',
+    fontSize: 14,
   },
 });
 
-export default LoginScreen; 
+export default LoginScreen;

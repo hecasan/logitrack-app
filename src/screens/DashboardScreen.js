@@ -1,173 +1,156 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { Card, Title, Paragraph, useTheme, ActivityIndicator } from 'react-native-paper';
-import { PieChart } from 'react-native-chart-kit';
-import { roboService, eventoService, entregaService } from '../services/api';
-import { statusColors } from '../constants/theme';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  ActivityIndicator 
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getRobots } from '../services/robotService';
 
-const DashboardScreen = () => {
-  const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    robos: { ativo: 0, inativo: 0, manutencao: 0 },
-    entregas: { pendente: 0, em_andamento: 0, concluida: 0, cancelada: 0, atrasada: 0 },
-    alertas: [],
+const DashboardScreen = ({ navigation }) => {
+  const [robotStats, setRobotStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    maintenance: 0,
+    inOperation: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const loadData = async () => {
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [robos, eventos, entregas] = await Promise.all([
-        roboService.getAll(),
-        eventoService.getAlertasCriticos(),
-        entregaService.getAll(),
-      ]);
-
-      const robosStats = robos.data.reduce((acc, robo) => {
-        acc[robo.status.toLowerCase()]++;
-        return acc;
-      }, { ativo: 0, inativo: 0, manutencao: 0 });
-
-      const entregasStats = entregas.data.reduce((acc, entrega) => {
-        acc[entrega.status.toLowerCase()]++;
-        return acc;
-      }, { pendente: 0, em_andamento: 0, concluida: 0, cancelada: 0, atrasada: 0 });
-
-      setStats({
-        robos: robosStats,
-        entregas: entregasStats,
-        alertas: eventos.data,
-      });
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      const robots = await getRobots();
+      
+      // Calcular estatísticas
+      const stats = {
+        total: robots.length,
+        active: robots.filter(r => r.status === 'ATIVO').length,
+        inactive: robots.filter(r => r.status === 'INATIVO').length,
+        maintenance: robots.filter(r => r.status === 'MANUTENCAO').length,
+        inOperation: robots.filter(r => r.status === 'EM_OPERACAO').length
+      };
+      
+      setRobotStats(stats);
+      setError(null);
+    } catch (err) {
+      setError('Falha ao carregar dados do dashboard');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    loadData().then(() => setRefreshing(false));
-  }, []);
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#3498db" />
+        <Text style={styles.loadingText}>Carregando dashboard...</Text>
       </View>
     );
   }
 
-  const entregasData = [
-    {
-      name: 'Pendentes',
-      population: stats.entregas.pendente,
-      color: statusColors.PENDENTE,
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Em Andamento',
-      population: stats.entregas.em_andamento,
-      color: statusColors.EM_ANDAMENTO,
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Concluídas',
-      population: stats.entregas.concluida,
-      color: statusColors.CONCLUIDA,
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Canceladas',
-      population: stats.entregas.cancelada,
-      color: statusColors.CANCELADA,
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Atrasadas',
-      population: stats.entregas.atrasada,
-      color: statusColors.ATRASADA,
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-  ];
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color="#e74c3c" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadDashboardData}>
+          <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Status dos Robôs</Title>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Paragraph style={[styles.statValue, { color: statusColors.ATIVO }]}>
-                {stats.robos.ativo}
-              </Paragraph>
-              <Paragraph>Ativos</Paragraph>
-            </View>
-            <View style={styles.statItem}>
-              <Paragraph style={[styles.statValue, { color: statusColors.INATIVO }]}>
-                {stats.robos.inativo}
-              </Paragraph>
-              <Paragraph>Inativos</Paragraph>
-            </View>
-            <View style={styles.statItem}>
-              <Paragraph style={[styles.statValue, { color: statusColors.MANUTENCAO }]}>
-                {stats.robos.manutencao}
-              </Paragraph>
-              <Paragraph>Manutenção</Paragraph>
-            </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <Text style={styles.headerSubtitle}>Visão geral do sistema</Text>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <View style={styles.statIconContainer}>
+            <Ionicons name="hardware-chip" size={24} color="#3498db" />
           </View>
-        </Card.Content>
-      </Card>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{robotStats.total}</Text>
+            <Text style={styles.statLabel}>Total de Robôs</Text>
+          </View>
+        </View>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Status das Entregas</Title>
-          <PieChart
-            data={entregasData}
-            width={300}
-            height={200}
-            chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
-        </Card.Content>
-      </Card>
+        <View style={styles.statCard}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#27ae60' }]}>
+            <Ionicons name="checkmark-circle" size={24} color="white" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{robotStats.active}</Text>
+            <Text style={styles.statLabel}>Ativos</Text>
+          </View>
+        </View>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Alertas Críticos</Title>
-          {stats.alertas.map((alerta, index) => (
-            <View key={index} style={styles.alertItem}>
-              <Paragraph style={styles.alertTitle}>
-                Robô {alerta.robo.codigo} - {alerta.tipoSensor}
-              </Paragraph>
-              <Paragraph style={styles.alertMessage}>{alerta.leitura}</Paragraph>
-            </View>
-          ))}
-        </Card.Content>
-      </Card>
+        <View style={styles.statCard}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#e74c3c' }]}>
+            <Ionicons name="close-circle" size={24} color="white" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{robotStats.inactive}</Text>
+            <Text style={styles.statLabel}>Inativos</Text>
+          </View>
+        </View>
+
+        <View style={styles.statCard}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#f39c12' }]}>
+            <Ionicons name="construct" size={24} color="white" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{robotStats.maintenance}</Text>
+            <Text style={styles.statLabel}>Em Manutenção</Text>
+          </View>
+        </View>
+
+        <View style={styles.statCard}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#3498db' }]}>
+            <Ionicons name="cog" size={24} color="white" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{robotStats.inOperation}</Text>
+            <Text style={styles.statLabel}>Em Operação</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ações Rápidas</Text>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Robôs')}
+          >
+            <Ionicons name="list" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Ver Todos os Robôs</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
+            <Ionicons name="add-circle" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Adicionar Novo Robô</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={[styles.actionButton, styles.tertiaryButton]}>
+            <Ionicons name="analytics" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Relatórios</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -175,41 +158,128 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  header: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  card: {
-    marginBottom: 16,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginTop: 4,
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    padding: 16,
   },
-  statItem: {
+  statCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#ecf0f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statInfo: {
+    flex: 1,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#2c3e50',
   },
-  alertItem: {
-    marginBottom: 8,
-    padding: 8,
-    backgroundColor: '#fff3f3',
-    borderRadius: 4,
+  statLabel: {
+    fontSize: 14,
+    color: '#7f8c8d',
   },
-  alertTitle: {
+  section: {
+    marginTop: 10,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#d32f2f',
+    color: '#2c3e50',
+    marginBottom: 12,
   },
-  alertMessage: {
-    color: '#666',
+  actionsContainer: {
+    flexDirection: 'column',
+  },
+  actionButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  secondaryButton: {
+    backgroundColor: '#2ecc71',
+  },
+  tertiaryButton: {
+    backgroundColor: '#9b59b6',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7f8c8d',
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#e74c3c',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#3498db',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 
-export default DashboardScreen; 
+export default DashboardScreen;
