@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getRobots } from '../services/robotService';
@@ -25,11 +25,36 @@ const DashboardScreen = ({ navigation }) => {
     loadDashboardData();
   }, []);
 
+  // const loadDashboardData = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const robots = await getRobots();
+
+  //     // Calcular estatísticas
+  //     const stats = {
+  //       total: robots.length,
+  //       active: robots.filter(r => r.status === 'ATIVO').length,
+  //       inactive: robots.filter(r => r.status === 'INATIVO').length,
+  //       maintenance: robots.filter(r => r.status === 'MANUTENCAO').length,
+  //       inOperation: robots.filter(r => r.status === 'EM_OPERACAO').length
+  //     };
+
+  //     setRobotStats(stats);
+  //     setError(null);
+  //   } catch (err) {
+  //     setError('Falha ao carregar dados do dashboard');
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // Modificar apenas a função loadDashboardData no DashboardScreen.js
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const robots = await getRobots();
-      
+
       // Calcular estatísticas
       const stats = {
         total: robots.length,
@@ -38,16 +63,29 @@ const DashboardScreen = ({ navigation }) => {
         maintenance: robots.filter(r => r.status === 'MANUTENCAO').length,
         inOperation: robots.filter(r => r.status === 'EM_OPERACAO').length
       };
-      
+
       setRobotStats(stats);
-      setError(null);
     } catch (err) {
-      setError('Falha ao carregar dados do dashboard');
+      setError(err.message || 'Falha ao carregar dados do dashboard. Verifique se o backend está rodando.');
       console.error(err);
+
+      // Mostrar alerta para o usuário
+      Alert.alert(
+        "Erro de Conexão",
+        "Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:8080/api",
+        [
+          { text: "OK" },
+          {
+            text: "Tentar Novamente",
+            onPress: () => loadDashboardData()
+          }
+        ]
+      );
     } finally {
       setLoading(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -132,19 +170,19 @@ const DashboardScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ações Rápidas</Text>
         <View style={styles.actionsContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('Robôs')}
           >
             <Ionicons name="list" size={24} color="white" />
             <Text style={styles.actionButtonText}>Ver Todos os Robôs</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
             <Ionicons name="add-circle" size={24} color="white" />
             <Text style={styles.actionButtonText}>Adicionar Novo Robô</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={[styles.actionButton, styles.tertiaryButton]}>
             <Ionicons name="analytics" size={24} color="white" />
             <Text style={styles.actionButtonText}>Relatórios</Text>

@@ -6,10 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getRobots } from '../services/robotService';
+
+
 
 const RobotListScreen = ({ navigation }) => {
   const [robots, setRobots] = useState([]);
@@ -24,12 +27,25 @@ const RobotListScreen = ({ navigation }) => {
   const loadRobots = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getRobots();
       setRobots(data);
-      setError(null);
     } catch (err) {
-      setError('Falha ao carregar os robôs. Tente novamente.');
+      setError(err.message || 'Falha ao carregar os robôs. Verifique se o backend está rodando.');
       console.error(err);
+
+      // Mostrar alerta para o usuário
+      Alert.alert(
+        "Erro de Conexão",
+        "Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:8080/api",
+        [
+          { text: "OK" },
+          {
+            text: "Tentar Novamente",
+            onPress: () => loadRobots()
+          }
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -37,8 +53,11 @@ const RobotListScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadRobots();
-    setRefreshing(false);
+    try {
+      await loadRobots();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const getStatusColor = (status) => {
