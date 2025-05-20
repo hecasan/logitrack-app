@@ -10,7 +10,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getRobotById } from '../services/robotService';
 
-
 const RobotDetailScreen = ({ route, navigation }) => {
    const { robotId } = route.params;
    const [robot, setRobot] = useState(null);
@@ -20,20 +19,6 @@ const RobotDetailScreen = ({ route, navigation }) => {
    useEffect(() => {
       loadRobotDetails();
    }, [robotId]);
-
-   // const loadRobotDetails = async () => {
-   //    try {
-   //       setLoading(true);
-   //       const data = await getRobotById(robotId);
-   //       setRobot(data);
-   //       setError(null);
-   //    } catch (err) {
-   //       setError('Falha ao carregar detalhes do robô. Tente novamente.');
-   //       console.error(err);
-   //    } finally {
-   //       setLoading(false);
-   //    }
-   // };
 
    // Modificar apenas a função loadRobotDetails no RobotDetailScreen.js
    const loadRobotDetails = async () => {
@@ -62,7 +47,6 @@ const RobotDetailScreen = ({ route, navigation }) => {
          setLoading(false);
       }
    };
-
 
    const getStatusColor = (status) => {
       switch (status) {

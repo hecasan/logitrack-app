@@ -25,30 +25,6 @@ const DashboardScreen = ({ navigation }) => {
     loadDashboardData();
   }, []);
 
-  // const loadDashboardData = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const robots = await getRobots();
-
-  //     // Calcular estatísticas
-  //     const stats = {
-  //       total: robots.length,
-  //       active: robots.filter(r => r.status === 'ATIVO').length,
-  //       inactive: robots.filter(r => r.status === 'INATIVO').length,
-  //       maintenance: robots.filter(r => r.status === 'MANUTENCAO').length,
-  //       inOperation: robots.filter(r => r.status === 'EM_OPERACAO').length
-  //     };
-
-  //     setRobotStats(stats);
-  //     setError(null);
-  //   } catch (err) {
-  //     setError('Falha ao carregar dados do dashboard');
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  // Modificar apenas a função loadDashboardData no DashboardScreen.js
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -85,7 +61,6 @@ const DashboardScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
 
   if (loading) {
     return (

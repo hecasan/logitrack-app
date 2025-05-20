@@ -12,8 +12,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getRobots } from '../services/robotService';
 
-
-
 const RobotListScreen = ({ navigation }) => {
   const [robots, setRobots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -259,4 +257,3 @@ const styles = StyleSheet.create({
 });
 
 export default RobotListScreen;
-
